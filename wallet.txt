@@ -1,0 +1,9 @@
+{
+	"publicKey": "4rixG9YBPRsjzPkpmbFnK36jFuhQQv87P9yqG4juBYeC",
+	"secretKey": "53mCVsUkN95rZp5EqjXvCikrTcHNYngxMPzyrWxJsL7WZHRzL1XELryTXSidkPWXXYmevdx5vg5nHVT7nKasNDwe"
+}
+
+com saldo arquivo vote-account-keypair.json
+
+🔑 Chave Pública: FrVX5yTDQx83qPzP5GjABSvJLoosyFPebp3sC9BaQrhw
+🔐 Chave Privada (Base58): 4CJDaURcvGB995DcbJTZDA7Ps9cJUtdCENW56GLPWCHAWLgYnGvgphVp2wfxbuPa9XX4TtHHjFWproDc77zmknCh
