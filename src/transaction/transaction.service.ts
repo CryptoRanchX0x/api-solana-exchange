@@ -1,6 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
-  clusterApiUrl,
   Connection,
   Transaction,
   SystemProgram,
@@ -8,15 +7,15 @@ import {
   PublicKey,
   Keypair,
 } from '@solana/web3.js';
-import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 
 @Injectable()
 export class TransactionService {
-  private readonly connection = new Connection(
-    clusterApiUrl('devnet'),
-    'confirmed',
-  );
+  
+  constructor(
+    @Inject('SOLANA_CONNECTION')
+    private readonly connection: Connection,
+  ) { }
 
   async createTransaction(from: string, to: string, amount: number) {
     const tx = new Transaction();
@@ -30,11 +29,15 @@ export class TransactionService {
       }),
     );
 
-    tx.recentBlockhash = (await this.connection.getRecentBlockhash()).blockhash;
+    const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash();
+
+    tx.recentBlockhash = blockhash;
+    tx.lastValidBlockHeight = lastValidBlockHeight;
     tx.feePayer = fromPubkey;
+
     return {
       rawTransaction: Buffer.from(
-        tx.serialize({ requireAllSignatures: false }),
+        tx.serialize({ requireAllSignatures: true, verifySignatures: false }),
       ).toString('hex'),
     };
   }
@@ -42,21 +45,12 @@ export class TransactionService {
   signTransaction(rawTransaction: string, secretKey: string) {
     const txFromHex = Buffer.from(rawTransaction, 'hex');
     const tx = Transaction.from(txFromHex);
+
     const secretKeyDecode = bs58.decode(secretKey);
     const keypair = Keypair.fromSecretKey(secretKeyDecode);
+    console.log(keypair);
 
-    const feePayerSignature = nacl.sign.detached(
-      tx.serializeMessage(),
-      keypair.secretKey,
-    );
-
-    const transferSignature = nacl.sign.detached(
-      tx.serializeMessage(),
-      keypair.secretKey,
-    );
-
-    tx.addSignature(keypair.publicKey, Buffer.from(feePayerSignature));
-    tx.addSignature(keypair.publicKey, Buffer.from(transferSignature));
+    tx.sign(keypair);
 
     return {
       signedTransaction: Buffer.from(tx.serialize()).toString('hex'),
@@ -65,9 +59,11 @@ export class TransactionService {
 
   async sendTransaction(signedTransaction: string) {
     const txFromHex = Buffer.from(signedTransaction, 'hex');
+    console.log(txFromHex);
     const tx = Transaction.from(txFromHex);
     const signature = await this.connection.sendRawTransaction(tx.serialize(), {
-      skipPreflight: true,
+      skipPreflight: false,
+      preflightCommitment: 'confirmed',
     });
     return {
       signature: signature,

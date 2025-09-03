@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   Keypair,
   Connection,
   PublicKey,
-  clusterApiUrl,
+  SystemProgram,
+  Transaction,
+  sendAndConfirmTransaction,
   LAMPORTS_PER_SOL,
   Commitment,
 } from '@solana/web3.js';
@@ -12,17 +14,18 @@ import * as bip39 from 'bip39';
 
 @Injectable()
 export class WalletService {
-  private readonly connection = new Connection(
-    clusterApiUrl('devnet'),
-    'confirmed',
-  );
 
-  async createWallet() {
+  constructor(
+    @Inject('SOLANA_CONNECTION')
+    private readonly connection: Connection,
+  ) { }
+
+  async generateWallet() {
     const mnemonic = bip39.generateMnemonic();
 
     const seed = await bip39.mnemonicToSeed(mnemonic);
 
-    const keypair = Keypair.fromSeed(seed.slice(0, 32));
+    const keypair = Keypair.fromSeed(seed.subarray(0, 32));
 
     const publicKey: string = keypair.publicKey.toBase58();
     const secretKey: string = bs58.encode(Uint8Array.from(keypair.secretKey));
@@ -63,7 +66,8 @@ export class WalletService {
   async getAccountInfo(walletAddress: string) {
     try {
       const pubKey = new PublicKey(walletAddress);
-      const accountInfo = await this.connection.getAccountInfo(pubKey);
+      const accountInfo = await this.connection.getParsedAccountInfo(pubKey);
+      console.log(accountInfo);
 
       return {
         success: true,
@@ -77,5 +81,46 @@ export class WalletService {
         error: error.message,
       };
     }
+  }
+
+  async getRentAccount(address: string) {
+    const pubKey = new PublicKey(address);
+    const accountInfo = await this.connection.getAccountInfo(pubKey);
+    const rentExemptionAmount =
+      await this.connection.getMinimumBalanceForRentExemption(accountInfo?.data.length ?? 0);
+
+    return {
+      success: true,
+      message: 'Valor mínimo para isenção de aluguel',
+      rentExemptionAmount,
+    };
+  }
+
+  async createWallet(payerSecretKey: string) {
+
+    const secretKeyDecode = bs58.decode(payerSecretKey);
+    const payer = Keypair.fromSecretKey(secretKeyDecode);
+    console.log('Payer Public Key:', payer.publicKey.toBase58());
+
+    const newUserAccount = Keypair.generate();
+
+    const transaction = new Transaction().add(
+      SystemProgram.createAccount({
+        fromPubkey: payer.publicKey,
+        newAccountPubkey: newUserAccount.publicKey,
+        lamports: 0,
+        space: 0,
+        programId: SystemProgram.programId,
+      })
+    );
+
+    const signature = await sendAndConfirmTransaction(this.connection, transaction, [payer, newUserAccount]);
+    console.log('Conta de usuário criada:', newUserAccount.publicKey.toBase58());
+    console.log('Signature da transação:', signature);
+    return {
+      publicKey: newUserAccount.publicKey.toBase58(),
+      secretKey: bs58.encode(Uint8Array.from(newUserAccount.secretKey)),
+      transactionSignature: signature,
+    };
   }
 }

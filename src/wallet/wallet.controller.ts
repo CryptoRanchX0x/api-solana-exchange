@@ -5,9 +5,14 @@ import { WalletService } from './wallet.service';
 export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
-  @Post('create-wallet')
+  @Post('generate-wallet')
   createWallet() {
-    return this.walletService.createWallet();
+    return this.walletService.generateWallet();
+  }
+
+  @Post('create-wallet/:payerSecretKey')
+  async createWalletWithPayer(@Param('payerSecretKey') payerSecretKey: string) {
+    return await this.walletService.createWallet(payerSecretKey);
   }
 
   @Get('airdrop/:address')
@@ -19,5 +24,10 @@ export class WalletController {
   @Get('account-info/:address')
   async getAccountInfo(@Param('address') address: string) {
     return await this.walletService.getAccountInfo(address);
+  }
+
+  @Get('rent-account/:address')
+  async getRentAccount(@Param('address') address: string) {
+    return await this.walletService.getRentAccount(address);
   }
 }
