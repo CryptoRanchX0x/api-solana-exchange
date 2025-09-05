@@ -1,0 +1,11 @@
+1 - user:
+
+2 - Owner:
+
+3 - Mint Account:
+
+4 - Token Account/ATA
+
+5 - Mint
+
+6 - Transfer Token

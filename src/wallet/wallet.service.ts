@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import {
   Keypair,
   Connection,
@@ -21,16 +21,21 @@ export class WalletService {
   ) { }
 
   async generateWallet() {
-    const mnemonic = bip39.generateMnemonic();
+    try {
+      const mnemonic = bip39.generateMnemonic();
 
-    const seed = await bip39.mnemonicToSeed(mnemonic);
+      const seed = await bip39.mnemonicToSeed(mnemonic);
 
-    const keypair = Keypair.fromSeed(seed.subarray(0, 32));
+      const keypair = Keypair.fromSeed(seed.subarray(0, 32));
 
-    const publicKey: string = keypair.publicKey.toBase58();
-    const secretKey: string = bs58.encode(Uint8Array.from(keypair.secretKey));
+      const publicKey: string = keypair.publicKey.toBase58();
+      const secretKey: string = bs58.encode(Uint8Array.from(keypair.secretKey));
 
-    return { publicKey, secretKey, mnemonic };
+      return { publicKey, secretKey, mnemonic };
+    } catch (error) {
+      console.error('Error generating wallet:', error);
+      throw new BadRequestException('Error generating wallet');
+    }
   }
 
   async requestAirdrop(walletAddress: string, amount: number) {
@@ -55,11 +60,7 @@ export class WalletService {
         confirmationResult: confirmationResult.value,
       };
     } catch (error) {
-      return {
-        success: false,
-        message: 'Erro ao solicitar airdrop',
-        error: error.message,
-      };
+      throw new BadRequestException('Erro ao solicitar airdrop: ' + error.message);
     }
   }
 
@@ -75,52 +76,59 @@ export class WalletService {
         accountInfo,
       };
     } catch (error) {
-      return {
-        success: false,
-        message: 'Erro ao buscar informações da conta',
-        error: error.message,
-      };
+      throw new BadRequestException('Erro ao obter informações da conta: ' + error.message);
     }
   }
 
   async getRentAccount(address: string) {
-    const pubKey = new PublicKey(address);
-    const accountInfo = await this.connection.getAccountInfo(pubKey);
-    const rentExemptionAmount =
-      await this.connection.getMinimumBalanceForRentExemption(accountInfo?.data.length ?? 0);
+    try {
+      const pubKey = new PublicKey(address);
+      const accountInfo = await this.connection.getAccountInfo(pubKey);
+      const rentExemptionAmount =
+        await this.connection.getMinimumBalanceForRentExemption(accountInfo?.data.length ?? 0);
 
-    return {
-      success: true,
-      message: 'Valor mínimo para isenção de aluguel',
-      rentExemptionAmount,
-    };
+      return {
+        success: true,
+        message: 'Valor mínimo para isenção de aluguel',
+        rentExemptionAmount,
+      };
+    } catch (error) {
+      console.error('Erro ao obter valor mínimo para isenção de aluguel:', error);
+      throw new BadRequestException('Erro ao obter valor mínimo para isenção de aluguel: ' + error.message);
+    }
   }
 
   async createWallet(payerSecretKey: string) {
 
-    const secretKeyDecode = bs58.decode(payerSecretKey);
-    const payer = Keypair.fromSecretKey(secretKeyDecode);
-    console.log('Payer Public Key:', payer.publicKey.toBase58());
+    try {
+      const secretKeyDecode = bs58.decode(payerSecretKey);
+      const payer = Keypair.fromSecretKey(secretKeyDecode);
+      console.log('Payer Public Key:', payer.publicKey.toBase58());
+  
+      const newUserAccount = Keypair.generate();
 
-    const newUserAccount = Keypair.generate();
-
-    const transaction = new Transaction().add(
-      SystemProgram.createAccount({
-        fromPubkey: payer.publicKey,
-        newAccountPubkey: newUserAccount.publicKey,
-        lamports: 0,
-        space: 0,
-        programId: SystemProgram.programId,
-      })
-    );
-
-    const signature = await sendAndConfirmTransaction(this.connection, transaction, [payer, newUserAccount]);
-    console.log('Conta de usuário criada:', newUserAccount.publicKey.toBase58());
-    console.log('Signature da transação:', signature);
-    return {
-      publicKey: newUserAccount.publicKey.toBase58(),
-      secretKey: bs58.encode(Uint8Array.from(newUserAccount.secretKey)),
-      transactionSignature: signature,
-    };
+      const transaction = new Transaction().add(
+        SystemProgram.createAccount({
+          fromPubkey: payer.publicKey,
+          newAccountPubkey: newUserAccount.publicKey,
+          lamports: 0,
+          space: 0,
+          programId: SystemProgram.programId,
+        })
+      );
+  
+      const signature = await sendAndConfirmTransaction(this.connection, transaction, [payer, newUserAccount]);
+      console.log('Conta de usuário criada:', newUserAccount.publicKey.toBase58());
+      console.log('Signature da transação:', signature);
+      return {
+        publicKey: newUserAccount.publicKey.toBase58(),
+        secretKey: bs58.encode(Uint8Array.from(newUserAccount.secretKey)),
+        transactionSignature: signature,
+      };
+      
+    } catch (error) {
+      console.error('Erro ao criar conta de usuário:', error);
+      throw new BadRequestException(error.transactionMessage);
+    }
   }
 }

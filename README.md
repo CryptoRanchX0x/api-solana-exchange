@@ -27,26 +27,29 @@ Este projeto utiliza a blockchain Solana para criar carteiras, realizar transaç
 
 ## Description
 
-This project is an API built with the NestJS framework for studying the Solana blockchain, focusing on wallet management and transactions. It utilizes the JavaScript library [@solana/web3.js](https://www.npmjs.com/package/@solana/web3.js) for interacting with the Solana network. All examples follow the official Solana documentation, especially the guide on [offline transactions](https://solana.com/pt/developers/cookbook/transactions/offline-transactions).
+This project is an API built with the NestJS framework for studying the Solana blockchain, focusing on wallet management and transactions. It utilizes the JavaScript library [@solana/web3.js](https://www.npmjs.com/package/@solana/web3.js) and [@solana/spl-token](https://www.npmjs.com/package/@solana/spl-token) for interacting with the Solana network. All examples follow the official Solana documentation, especially the guide on [offline transactions](https://solana.com/pt/developers/cookbook/transactions/offline-transactions).
 
 ## Project setup
 
 ```bash
 $ npm install
 
-# development
-$ npm run start
+# Node local
+$ npm run start:local
 
-# watch mode
-$ npm run start:dev
+# Solana Devnet
+$ npm run start:devnet
 
-# production mode
-$ npm run start:prod
+# Solana Testnet
+$ npm run start:testnet
+
+# Solana Mainnet
+$ npm run start:mainnet
 ```
 
 ## API Solana Exchange
 
-Utilize a collection de requisições disponível no caminho `/utils/collection_api.json` para testar os endpoints da API.
+Utilize a collection de requisições disponível no caminho `/docs/collection_api.json` para testar os endpoints da API.
 
 ### Wallet
 

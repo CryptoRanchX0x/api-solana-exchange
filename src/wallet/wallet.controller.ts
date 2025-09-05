@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 
 @Controller('wallet')
@@ -10,9 +10,9 @@ export class WalletController {
     return this.walletService.generateWallet();
   }
 
-  @Post('create-wallet/:payerSecretKey')
-  async createWalletWithPayer(@Param('payerSecretKey') payerSecretKey: string) {
-    return await this.walletService.createWallet(payerSecretKey);
+  @Post('create-wallet')
+  async createWalletOnChain(@Body('secretKey') secretKey: string) {
+    return await this.walletService.createWallet(secretKey);
   }
 
   @Get('airdrop/:address')
