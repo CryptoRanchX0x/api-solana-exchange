@@ -6,7 +6,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "start:local": "cross-env SOLANA_NETWORK=local nest start",
+    "start:local": "docker-compose up -d && cross-env SOLANA_NETWORK=local nest start",
     "start:devnet": "cross-env SOLANA_NETWORK=devnet nest start",
     "start:testnet": "cross-env SOLANA_NETWORK=testnet nest start",
     "start:mainnet": "cross-env SOLANA_NETWORK=mainnet-beta nest start"
